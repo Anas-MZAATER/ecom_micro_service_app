@@ -1,13 +1,14 @@
 package net.anas.order_service.services;
 
 import net.anas.order_service.modal.Customer;
+import net.anas.order_service.myConfig.FeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 
-@FeignClient(name = "customer-service")
+@FeignClient(name = "customer-service", configuration = FeignConfig.class)
 public interface CustomerRestClientService {
     @GetMapping("/customers/{id}?projection=fullCustomer")
     public Customer customerById(@PathVariable Long id);
