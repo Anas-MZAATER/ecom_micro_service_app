@@ -6,6 +6,8 @@ target/
 Config-repo/
 consul/
 vault/
+**/.env
+ecom_angular_frontend/
 
 ### IntelliJ IDEA ###
 .idea/

@@ -1,8 +1,7 @@
 package net.anas.billing_service.web;
 
-import net.anas.billing_service.myConfig.ConsulConfig;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
+import net.anas.billing_service.myConfig.MyConsulConfig;
+import net.anas.billing_service.myConfig.MyVaultConfig;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,15 +20,17 @@ public class ConsulConfigRestController {
 //        return Map.of("accessTokenTimeout", accessTokenTimeout,"refreshTokenTimeout", refreshTokenTimeout);
 //    }
 
-    private final ConsulConfig myConsulConfig;
-
-    public ConsulConfigRestController(ConsulConfig myConsulConfig) {
+    private final MyConsulConfig myConsulConfig;
+    private final MyVaultConfig myVaultConfig;
+    public ConsulConfigRestController(MyConsulConfig myConsulConfig,
+                                      MyVaultConfig myVaultConfig) {
         this.myConsulConfig = myConsulConfig;
+        this.myVaultConfig = myVaultConfig;
     }
 
     @GetMapping("/myConfig")
-    public ConsulConfig MyConsulConfig() {
-        return myConsulConfig;
+    public Map<String, Object> MyConfig() {
+        return Map.of("myConsulConfig", myConsulConfig, "myVaultConfig", myVaultConfig);
     }
 
 }
