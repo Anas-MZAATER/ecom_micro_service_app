@@ -1,0 +1,186 @@
+networks:
+  ecom-microservices:
+    driver: bridge
+
+volumes:
+  consul-data:
+  vault-data:
+  vault-logs:
+
+services:
+  ecom-consul:
+    image: hashicorp/consul:1.22
+    container_name: ecom-consul-server
+    networks:
+      - ecom-microservices
+    ports:
+      - "8500:8500"  # UI & HTTP API
+      - "8600:8600/udp"  # DNS
+    volumes:
+      - consul-data:/consul/data
+      - ./consul/config:/consul/config
+    command: >
+      agent -server -ui
+      -bootstrap-expect=1
+      -client=0.0.0.0
+      -bind=0.0.0.0
+      -data-dir=/consul/data
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    healthcheck:
+      #test: ["CMD", "consul", "members"]
+      test: ["CMD", "wget", "--spider", "-q", "http://ecom-consul:8500/v1/agent/self"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  ecom-vault:
+    image: hashicorp/vault:1.12.3
+    container_name: ecom-vault-server
+    networks:
+      - ecom-microservices
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault-data:/vault/data
+      - vault-logs:/vault/logs
+      - ./vault/config:/vault/config
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=dev-root-token
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://vault:8200
+    command: server -dev
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      #test: ["CMD", "vault", "status", "-address=http://localhost:8200"]
+      test: ["CMD", "wget", "--spider", "-q", "http://ecom-vault:8200/v1/sys/health"]
+      interval: 10s
+      retries: 5
+    depends_on:
+      ecom-consul:
+        condition: service_healthy
+
+  ecom-config-service:
+    build: ./config-service
+    container_name: ecom-config-service
+    networks:
+      - ecom-microservices
+    environment:
+      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+    ports:
+      - '9999:9999'
+    expose:
+      - '9999'
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9999/actuator/health"]
+      interval: 5s
+      retries: 5
+    depends_on:
+      ecom-consul:
+        condition: service_healthy
+
+  ecom-customer-service:
+    build: ./customer-service
+    container_name: ecom-customer-service
+    networks:
+      - ecom-microservices
+    ports:
+      - "8081:8081"
+    expose:
+      - "8081"
+    environment:
+      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
+      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - VAULT_DEV_ROOT_TOKEN_ID=dev-root-token
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      retries: 5
+    depends_on:
+      ecom-config-service:
+        condition: service_healthy
+
+  ecom-inventory-service:
+    build: ./inventory-service
+    container_name: ecom-inventory-service
+    networks:
+      - ecom-microservices
+    ports:
+      - "8082:8082"
+    expose:
+      - "8082"
+    environment:
+      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
+      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      retries: 5
+    depends_on:
+      ecom-config-service:
+        condition: service_healthy
+
+  ecom-order-service:
+    build: ./order-service
+    container_name: ecom-order-service
+    networks:
+      - ecom-microservices
+    ports:
+      - "8083:8083"
+    expose:
+      - "8083"
+    environment:
+      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
+      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+    depends_on:
+      ecom-customer-service:
+        condition: service_healthy
+      ecom-inventory-service:
+        condition: service_healthy
+
+  ecom-gateway-service:
+    build: ./gateway-service
+    container_name: ecom-gateway-service
+    networks:
+      - ecom-microservices
+    ports:
+      - "8888:8888"
+    expose:
+      - "8888"
+    environment:
+      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
+      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+    depends_on:
+      ecom-config-service:
+        condition: service_healthy
+
+  ecom-billing-service:
+    build: ./billing-service
+    container_name: ecom-billing-service
+    networks:
+      - ecom-microservices
+    ports:
+      - "8084:8084"
+    expose:
+      - "8084"
+    environment:
+      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
+      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_VAULT_TOKEN=dev-root-token
+      - SPRING_CLOUD_VAULT_HOST=ecom-vault
+      - SPRING_CLOUD_VAULT_PORT=8200
+    depends_on:
+      ecom-consul:
+        condition: service_healthy
+      ecom-vault:
+        condition: service_healthy
