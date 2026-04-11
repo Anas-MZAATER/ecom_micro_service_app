@@ -7,6 +7,14 @@ volumes:
   vault-data:
   vault-logs:
 
+x-common-environment: &common-env
+  SPRING_CLOUD_CONSUL_HOST: ecom-consul
+  SPRING_CLOUD_CONSUL_PORT: "8500"
+  CONFIG_SERVICE_URL: http://ecom-config-service:9999
+  SPRING_CLOUD_VAULT_TOKEN: dev-root-token
+  SPRING_CLOUD_VAULT_HOST: ecom-vault
+  SPRING_CLOUD_VAULT_PORT: 8200
+
 services:
   ecom-consul:
     image: hashicorp/consul:1.22
@@ -67,8 +75,7 @@ services:
     networks:
       - ecom-microservices
     environment:
-      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
-      - SPRING_CLOUD_CONSUL_PORT=8500
+      <<: *common-env
     ports:
       - '9999:9999'
     expose:
@@ -94,10 +101,7 @@ services:
     expose:
       - "8081"
     environment:
-      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
-      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
-      - SPRING_CLOUD_CONSUL_PORT=8500
-      - VAULT_DEV_ROOT_TOKEN_ID=dev-root-token
+      <<: *common-env
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health"]
       interval: 10s
@@ -116,9 +120,7 @@ services:
     expose:
       - "8082"
     environment:
-      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
-      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
-      - SPRING_CLOUD_CONSUL_PORT=8500
+      <<: *common-env
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health"]
       interval: 10s
@@ -137,9 +139,7 @@ services:
     expose:
       - "8083"
     environment:
-      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
-      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
-      - SPRING_CLOUD_CONSUL_PORT=8500
+      <<: *common-env
     depends_on:
       ecom-customer-service:
         condition: service_healthy
@@ -156,9 +156,7 @@ services:
     expose:
       - "8888"
     environment:
-      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
-      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
-      - SPRING_CLOUD_CONSUL_PORT=8500
+      <<: *common-env
     depends_on:
       ecom-config-service:
         condition: service_healthy
@@ -173,12 +171,7 @@ services:
     expose:
       - "8084"
     environment:
-      - CONFIG_SERVICE_URL=http://ecom-config-service:9999
-      - SPRING_CLOUD_CONSUL_HOST=ecom-consul
-      - SPRING_CLOUD_CONSUL_PORT=8500
-      - SPRING_CLOUD_VAULT_TOKEN=dev-root-token
-      - SPRING_CLOUD_VAULT_HOST=ecom-vault
-      - SPRING_CLOUD_VAULT_PORT=8200
+      <<: *common-env
     depends_on:
       ecom-consul:
         condition: service_healthy
