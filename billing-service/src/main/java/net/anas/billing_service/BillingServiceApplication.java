@@ -20,7 +20,10 @@ public class BillingServiceApplication {
 
     public static void main(String[] args) {
         // Only load .env in local dev, ignored in Docker
+        System.out.println("Working dir: " + System.getProperty("user.dir"));
         Dotenv dotenv = Dotenv.configure()
+                .directory("..")
+                .filename(".env")
                 .ignoreIfMissing()  // ← key: won't crash in Docker where no .env exists
                 .load();
 

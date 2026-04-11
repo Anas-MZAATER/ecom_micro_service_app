@@ -7,6 +7,7 @@ Config-repo/
 consul/
 vault/
 **/.env
+**/.env.docker
 ecom_angular_frontend/
 
 ### IntelliJ IDEA ###
