@@ -29,9 +29,9 @@ public class InventoryServiceApplication {
             for(int i=0;i<10;i++){
                 productRepository.saveAll(
                         List.of(
-                                Product.builder().name("Computer"+i).price(1200+Math.random()*1000).quantity(1+random.nextInt(200)).build(),
-                                Product.builder().name("Printer"+i).price(1200+Math.random()*1000).quantity(1+random.nextInt(200)).build(),
-                                Product.builder().name("Smartphone"+i).price(1200+Math.random()*1000).quantity(1+random.nextInt(200)).build()
+                                Product.builder().name("Computer_"+i).price(1200+Math.random()*1000).quantity(1+random.nextInt(200)).build(),
+                                Product.builder().name("Printer_"+i).price(1200+Math.random()*1000).quantity(1+random.nextInt(200)).build(),
+                                Product.builder().name("Smartphone_"+i).price(1200+Math.random()*1000).quantity(1+random.nextInt(200)).build()
                         )
                 );
             }

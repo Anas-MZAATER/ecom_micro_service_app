@@ -21,4 +21,12 @@ public class Order {
     private Customer customer;
     @OneToMany(mappedBy = "order")
     private List<ProductItem> productItems;
+
+    public double getTotal(){
+        double sum = 0;
+        for (ProductItem pi : productItems) {
+            sum += pi.getPrice();
+        }
+        return sum;
+    }
 }
