@@ -4,18 +4,27 @@ import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.Response;
 import com.ecwid.consul.v1.kv.model.GetValue;
 import io.github.cdimascio.dotenv.Dotenv;
+import net.anas.billing_service.clients.CustomerRestClient;
+import net.anas.billing_service.clients.ProductRestClient;
+import net.anas.billing_service.entities.Bill;
+import net.anas.billing_service.entities.ProductItem;
+import net.anas.billing_service.model.Customer;
+import net.anas.billing_service.model.Product;
+import net.anas.billing_service.repository.BillRepo;
+import net.anas.billing_service.repository.ProductItemRepo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.Versioned;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @SpringBootApplication
+@EnableFeignClients
 public class BillingServiceApplication {
 
     public static void main(String[] args) {
@@ -44,8 +53,33 @@ public class BillingServiceApplication {
     }
 
     @Bean
+    CommandLineRunner start(BillRepo billRepo, ProductItemRepo productItemRepo,
+                            CustomerRestClient customerRestClient,
+                            ProductRestClient productRestClient) {
+        return args -> {
+            Collection<Product> products=productRestClient.allProducts().getContent();
+            Long customerId=1L;
+            Customer customer=customerRestClient.findCustomerById(customerId);
+            if(customer==null) throw new RuntimeException("Customer not found");
+            Bill bill=new Bill();
+            bill.setCustomerId(customerId);
+            bill.setBillDate(new Date());
+            Bill savedBill=billRepo.save(bill);
+            products.forEach(p->{
+                ProductItem productItem=new ProductItem();
+                productItem.setBill(savedBill);
+                productItem.setProductId(p.getId());
+                productItem.setQuantity(1+new Random().nextInt(10));
+                productItem.setPrice(p.getPrice());
+                productItem.setDiscount(Math.random());
+                productItemRepo.save(productItem);
+            });
+        };
+    }
+
+    @Bean
     CommandLineRunner initVault(VaultTemplate vaultTemplate,
-            @Value("${spring.cloud.vault.host:localhost}") String vaultHost) {
+            @Value("${spring.cloud.vault.host}") String vaultHost) {
         return args -> {
 
             // WRITE
@@ -84,14 +118,14 @@ public class BillingServiceApplication {
         };
     }
     @Bean
-    CommandLineRunner initConsul(@Value("${spring.cloud.consul.host:localhost}") String consulHost,
-                                 @Value("${spring.cloud.consul.port:8500}") int consulPort) {
+    CommandLineRunner initConsul(@Value("${spring.cloud.consul.host}") String consulHost,
+                                 @Value("${spring.cloud.consul.port}") int consulPort) {
         return args -> {
 
             //String host = System.getenv().getOrDefault("CONSUL_HOST", "localhost");
             ConsulClient consulClient = new ConsulClient(consulHost, consulPort);
 
-            String key = "config/billing_service";
+            String key = "config/billing-service";
 
             // WRITE
             Map<String, String> config = Map.of(

@@ -168,3 +168,7 @@ services:
         condition: service_healthy
       ecom-vault:
         condition: service_healthy
+      ecom-customer-service:
+        condition: service_healthy
+      ecom-inventory-service:
+        condition: service_healthy
