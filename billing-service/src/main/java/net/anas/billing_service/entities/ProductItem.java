@@ -13,7 +13,7 @@ public class ProductItem{
 private Long id;
 private Long productId;
 @ManyToOne//(fetch = FetchType.LAZY)
-@JsonProperty(access =  JsonProperty.Access.WRITE_ONLY)
+@JsonProperty(access =  JsonProperty.Access.WRITE_ONLY)//avant DTOs
 private Bill bill;
 private Integer quantity;
 private Double price;
